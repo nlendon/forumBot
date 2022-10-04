@@ -2,6 +2,9 @@ const VkBot = require('node-vk-bot-api');
 const api = require('node-vk-bot-api/lib/api');
 const mysql = require('mysql2');
 require('dotenv').config();
+require('./Scene');
+const owner = 551919818;
+
 
 let connection = mysql.createPool({
     host: process.env.HOST,
@@ -51,7 +54,7 @@ bot.command('/gtask', async (ctx) => {
                 });
             }
         });
-        let logSQL = `INSERT INTO logs(id, task, sender, performer) VALUES ('${task}', '${user.response[0].first_name + ' ' + user.response[0].last_name}', 'null')`
+        let logSQL = `INSERT INTO logs(task, sender, performer) VALUES ('${task}', '${user.response[0].first_name + ' ' + user.response[0].last_name}', 'null')`
         connection.query(logSQL, async function (err, results) {
             if (err) {
                 console.log(err);
@@ -136,7 +139,17 @@ bot.command('/done', async (ctx) => {
 
 });
 bot.command('/logs', async (ctx) => {
-    ctx.reply('логи');
+    let sql = `SELECT * FROM logs`
+    connection.query(sql, async function (err, results) {
+        for (let i = 0; i < results.length; i++) {
+            await ctx.reply(`
+        id: ${results[i].id}
+        task: ${results[i].task}
+        sender: ${results[i].sender}
+        performer: ${results[i].performer}
+        `)
+        }
+    });
 });
 
 bot.command('/asay', async (ctx) => {
@@ -176,6 +189,10 @@ bot.command('/message', async (ctx) => {
         ctx.reply('Вы не указали сообщение!');
     }
 });
+
+bot.command('/addstuff', (ctx)=>{
+
+})
 
 
 
