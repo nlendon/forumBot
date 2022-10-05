@@ -23,12 +23,12 @@ bot.use(async (ctx, next) => {
     }
 });
 
-bot.command('/fs', (ctx) => {
+bot.command('/fv', (ctx) => {
     ctx.reply(`Бот Живой. Версия Бота 1.0.0`);
 });
 
 bot.command('/fhelp', (ctx) => {
-    ctx.reply(`Доступные команды бота:\n/report {Сообщение} - Отправить репорт или сообщение в беседу форумников\n/gtask {Задание} - Отправить задание в беседу Форумников\n/done {ID} - Выполнить задачу\n/tasks - Узнать текущие задачи.\n/logs - Получить все задачи, которые были отправлены в течении недели\n/asay {Сообщение} - Отправить Анонимное сообщение в Рабочую Беседу\n/message {Сообщение} - Отправить сообщение в Рабочу Беседу
+    ctx.reply(`Доступные команды бота:\n/fs - Получить Команду Следящих\n/report {Сообщение} - Отправить репорт или сообщение в беседу форумников\n/gtask {Задание} - Отправить задание в беседу Форумников\n/done {ID} - Выполнить задачу\n/tasks - Узнать текущие задачи.\n/logs - Получить все задачи, которые были отправлены в течении недели\n/asay {Сообщение} - Отправить Анонимное сообщение в Рабочую Беседу\n/message {Сообщение} - Отправить сообщение в Рабочу Беседу
     `);
 })
 
@@ -110,28 +110,32 @@ bot.command('/done', async (ctx) => {
         access_token: process.env.TOKEN,
     });
     if (id) {
-        let sql = `DELETE FROM tasks WHERE id = '${id}'`;
+        let sql = `SELECT * FROM tasks WHERE id = '${id}'`;
         connection.query(sql, async function (err, results) {
-            if (err) {
-                console.log(err);
-            }
-            else {
-                let random = Math.floor(Math.random() * 100)
-                let log = await api('messages.send', {
-                    chat_id: 3,
-                    random_id: random,
-                    access_token: process.env.TOKEN,
-                    message: `Задание под ID ${id} успешно выполнено`
-                });
-                await ctx.reply(`Задание под Номером ${id} успешно выполнено`);
-            }
+            let task = results[0].task;
+            let sql = `DELETE FROM tasks WHERE id = '${id}'`;
+            connection.query(sql, async function (err, results) {
+                if (err) {
+                    console.log(err);
+                }
+                else {
+                    let random = Math.floor(Math.random() * 100)
+                    let log = await api('messages.send', {
+                        chat_id: 3,
+                        random_id: random,
+                        access_token: process.env.TOKEN,
+                        message: `Задание ${task} успешно выполнен`
+                    });
+                    await ctx.reply(`Задание ${task} успешно выполнен`);
+                    let sql = `UPDATE logs SET performer='${user.response[0].first_name + ' ' + user.response[0].last_name}' WHERE task = '${task}'`;
+                    connection.query(sql, function (err, results) {
+                        if (err) {
+                            console.log(err);
+                        }
+                    })
+                }
+            });
         });
-        // let logSQL = `UPDATE logs SET performer='${user.response[0].first_name + ' ' + user.response[0].last_name}' WHERE id = '${id}'`
-        // connection.query(logSQL, async function (err, results) {
-        //     if(err) {
-        //         console.log(err);
-        //     }
-        // });
     }
     else {
         ctx.reply('Вы не указали ID задания');
@@ -140,15 +144,15 @@ bot.command('/done', async (ctx) => {
 });
 bot.command('/logs', async (ctx) => {
     let sql = `SELECT * FROM logs`
+    let message = 'Список Логов за неделю:\n'
     connection.query(sql, async function (err, results) {
         for (let i = 0; i < results.length; i++) {
-            await ctx.reply(`
-        id: ${results[i].id}
-        task: ${results[i].task}
-        sender: ${results[i].sender}
-        performer: ${results[i].performer}
-        `)
+        message+='ID: ' + results[i].id + '\n';
+        message+= 'Задание: ' + results[i].task + '\n';
+        message+= 'Отправитель: ' + results[i].sender + '\n';
+        message+= 'Выполнитель: ' + results[i].performer + '\n\n';
         }
+        ctx.reply(message);
     });
 });
 
@@ -190,8 +194,17 @@ bot.command('/message', async (ctx) => {
     }
 });
 
-bot.command('/addstuff', (ctx)=>{
-
+bot.command('/fs', (ctx) => {
+    let sql = `SELECT * FROM admins`;
+    let message = 'Состав Форумной Администрации: \n\n'
+    connection.query(sql, async function (err, results) {
+        for (let i = 0; i < results.length; i++) {
+            message+= (i+1) + '. Никнейм: ' + results[i].user + '\n';
+            message+= 'Должность ' + results[i].dolj + '\n\n';
+            // await ctx.reply(`Никнейм: ${results[i].user}\nДолжность: ${results[i].dolj}`)
+        }
+        ctx.reply(message);
+    });
 })
 
 
@@ -199,3 +212,4 @@ bot.command('/addstuff', (ctx)=>{
 
 bot.startPolling();
 console.log('Бот работает!');
+
