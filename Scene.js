@@ -44,18 +44,23 @@ const addstuff = new Scene('addstuff',
     },
     async (ctx) => {
         ctx.session.dolj = ctx.message.text;
+        ctx.reply('Укажите Уровень доступа\n1 - Следящий\n2 - Заместитель Главного Следящего\n 3 - Главный Следящий\n 4 - owner');
+        ctx.scene.next();
+    },
+    async (ctx) => {
+        ctx.session.role = ctx.message.text;
         let user = await api('users.get', {
             user_id: ctx.session.vk,
             access_token: process.env.TOKEN,
         });
         ctx.scene.leave();
-        let sql = `INSERT INTO admins(user, dolj, userid) VALUES ('${ctx.session.nickname}','${ctx.session.dolj}','${user.response[0].id}')`;
+        let sql = `INSERT INTO admins(user, dolj, userid, role) VALUES ('${ctx.session.nickname}','${ctx.session.dolj}','${user.response[0].id}', '${ctx.session.role}')`;
         connection.query(sql, async function (err, results) {
-            if(err) {
+            if (err) {
                 console.log(err);
             }
             else {
-            await ctx.reply(`Администратора ${ctx.session.nickname} успешно был добавлен!`);
+                await ctx.reply(`Администратора ${ctx.session.nickname} успешно был добавлен!`);
             }
         })
     });
